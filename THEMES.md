@@ -1,28 +1,51 @@
 # Themes
 
-The picker ships with **Catppuccin Mocha** as the default theme, embedded in the binary.
+The picker ships with **Catppuccin Mocha** as the default theme. On first launch, config files are created at `~/.config/cliphist-picker/`.
 
-## Override the default theme
+## How it works
 
-1. Copy the default CSS to your config directory:
+The theme system uses a two-level config chain (similar to Hyprland's `source`):
+
+```
+~/.config/cliphist-picker/
+├── theme.conf                      # points to a theme config
+└── themes/
+    ├── catppuccin-mocha.conf        # points to its CSS file
+    └── catppuccin-mocha.css         # the actual styles
+```
+
+**`theme.conf`** — selects which theme to use:
+```conf
+source = themes/catppuccin-mocha.conf
+```
+
+**`themes/catppuccin-mocha.conf`** — declares the CSS file:
+```conf
+css = catppuccin-mocha.css
+```
+
+## Switch to a different theme
+
+1. Create your theme files:
    ```sh
-   mkdir -p ~/.config/cliphist-picker/themes
-   cp data/themes/catppuccin-mocha.css ~/.config/cliphist-picker/themes/
+   cp ~/.config/cliphist-picker/themes/catppuccin-mocha.css \
+      ~/.config/cliphist-picker/themes/my-theme.css
    ```
-2. Edit `~/.config/cliphist-picker/themes/catppuccin-mocha.css` to your liking.
-3. Restart the daemon (`killall cliphist-picker && cliphist-picker &`).
 
-The picker checks for `~/.config/cliphist-picker/themes/catppuccin-mocha.css` at startup — if the file exists, it is used instead of the embedded default.
-
-## Create a new theme
-
-1. Copy the default as a starting point:
+2. Create a conf for it:
    ```sh
-   cp data/themes/catppuccin-mocha.css data/themes/my-theme.css
+   echo "css = my-theme.css" > ~/.config/cliphist-picker/themes/my-theme.conf
    ```
-2. Edit colors, fonts, borders, etc. in `my-theme.css`.
-3. Place it at `~/.config/cliphist-picker/themes/catppuccin-mocha.css` (the filename the picker looks for).
-4. Restart the daemon.
+
+3. Point `theme.conf` to it:
+   ```sh
+   echo "source = themes/my-theme.conf" > ~/.config/cliphist-picker/theme.conf
+   ```
+
+4. Restart the daemon:
+   ```sh
+   killall cliphist-picker && cliphist-picker &
+   ```
 
 ## CSS classes reference
 

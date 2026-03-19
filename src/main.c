@@ -6,11 +6,15 @@
 #include "models.h"
 #include "window.h"
 
-static void on_activate(GtkApplication *app, gpointer user_data) {
-    (void)user_data;
-    Config config = config_defaults();
+static PickerWindow *g_picker = NULL;
+static Config        g_config;
 
-    /* Load CSS: user override first, then embedded resource */
+static void on_startup(GtkApplication *app, gpointer user_data) {
+    (void)app; (void)user_data;
+
+    g_config = config_defaults();
+
+    /* Load CSS once */
     GtkCssProvider *provider = gtk_css_provider_new();
     char *user_css = g_build_filename(
         g_get_home_dir(), ".config", "cliphist-picker",
@@ -29,22 +33,29 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
         GTK_STYLE_PROVIDER(provider),
         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
     g_object_unref(provider);
+}
 
-    /* Fetch clipboard entries */
+static void on_activate(GtkApplication *app, gpointer user_data) {
+    (void)user_data;
+
+    /* Create window shell once */
+    if (!g_picker)
+        g_picker = picker_window_new(app, &g_config);
+
+    /* Fetch fresh clipboard entries */
     int raw_count = 0;
     RawEntry *raw = clipboard_list(&raw_count);
     if (!raw || raw_count == 0) {
         g_free(raw);
-        g_application_quit(G_APPLICATION(app));
-        return;
+        return; /* daemon stays alive */
     }
 
     /* Deduplicate */
     int entry_count = 0;
     ClipboardEntry *entries = deduplicate(
         raw, raw_count,
-        config.dedup_id_threshold,
-        config.max_entries,
+        g_config.dedup_id_threshold,
+        g_config.max_entries,
         &entry_count);
 
     /* Free raw entries */
@@ -54,19 +65,18 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
 
     if (entry_count == 0) {
         g_free(entries);
-        g_application_quit(G_APPLICATION(app));
-        return;
+        return; /* daemon stays alive */
     }
 
-    /* Create and show picker */
-    PickerWindow *win = picker_window_new(app, entries, entry_count, &config);
-    gtk_window_present(win->window);
+    /* Refresh and show */
+    picker_window_refresh(g_picker, entries, entry_count);
 }
 
 int main(int argc, char *argv[]) {
     GtkApplication *app = gtk_application_new(
         "com.github.cliphist-picker",
         G_APPLICATION_DEFAULT_FLAGS);
+    g_signal_connect(app, "startup",  G_CALLBACK(on_startup),  NULL);
     g_signal_connect(app, "activate", G_CALLBACK(on_activate), NULL);
     int status = g_application_run(G_APPLICATION(app), argc, argv);
     g_object_unref(app);

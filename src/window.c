@@ -37,11 +37,18 @@ typedef struct {
     int           row_index;
     guint8       *data;
     gsize         len;
+    guint         generation;
 } ThumbnailJob;
 
 static gboolean create_and_set_thumbnail_idle(gpointer user_data) {
     ThumbnailJob *job = user_data;
     PickerWindow *win = job->win;
+
+    /* Stale generation — window was refreshed since this job was created */
+    if (job->generation != win->generation) {
+        g_free(job);
+        return G_SOURCE_REMOVE;
+    }
 
     GdkTexture *texture = load_thumbnail_from_bytes(
         job->data, job->len, win->config.thumbnail_size);
@@ -63,9 +70,16 @@ static gboolean create_and_set_thumbnail_idle(gpointer user_data) {
 }
 
 static gpointer thumbnail_thread_func(gpointer data) {
-    PickerWindow *win = data;
+    ThumbnailJob *init = data;
+    PickerWindow *win = init->win;
+    guint gen = init->generation;
+    g_free(init);
 
     for (int i = 0; i < win->n_entries; i++) {
+        /* Check if generation changed (window refreshed) */
+        if (gen != win->generation)
+            break;
+
         ClipboardEntry *entry = &win->entries[i];
         if (!clipboard_entry_has_image(entry) || !entry->image_raw_line)
             continue;
@@ -95,11 +109,15 @@ static gpointer thumbnail_thread_func(gpointer data) {
             if (!img) continue;
         }
 
+        if (gen != win->generation)
+            break;
+
         ThumbnailJob *job = g_new0(ThumbnailJob, 1);
-        job->win       = win;
-        job->row_index = i;
-        job->data      = img->data;
-        job->len       = img->len;
+        job->win        = win;
+        job->row_index  = i;
+        job->data       = img->data;
+        job->len        = img->len;
+        job->generation = gen;
         g_idle_add(create_and_set_thumbnail_idle, job);
     }
 
@@ -107,7 +125,10 @@ static gpointer thumbnail_thread_func(gpointer data) {
 }
 
 static void load_thumbnails_async(PickerWindow *win) {
-    g_thread_new("thumbnail-loader", thumbnail_thread_func, win);
+    ThumbnailJob *init = g_new0(ThumbnailJob, 1);
+    init->win        = win;
+    init->generation = win->generation;
+    g_thread_new("thumbnail-loader", thumbnail_thread_func, init);
 }
 
 /* ── Preview ───────────────────────────────────────────────────── */
@@ -127,6 +148,7 @@ static void render_preview(PickerWindow *win, const guint8 *data, gsize len) {
 typedef struct {
     PickerWindow *win;
     char         *raw_line;
+    guint         generation;
 } PreviewDecodeJob;
 
 static gpointer preview_decode_thread(gpointer data) {
@@ -136,7 +158,7 @@ static gpointer preview_decode_thread(gpointer data) {
     gsize len = 0;
     guint8 *decoded = clipboard_decode(job->raw_line, &len);
 
-    if (decoded && len > 0) {
+    if (decoded && len > 0 && job->generation == win->generation) {
         ImageData *img = image_data_new(decoded, len);
         g_mutex_lock(&win->cache_mutex);
         g_hash_table_insert(win->image_cache,
@@ -145,11 +167,14 @@ static gpointer preview_decode_thread(gpointer data) {
         job->raw_line = NULL; /* ownership transferred to cache */
 
         ThumbnailJob *tj = g_new0(ThumbnailJob, 1);
-        tj->win  = win;
-        tj->data = img->data;
-        tj->len  = img->len;
-        tj->row_index = -1; /* signal: this is a preview, not thumbnail */
+        tj->win        = win;
+        tj->data       = img->data;
+        tj->len        = img->len;
+        tj->row_index  = -1;
+        tj->generation = job->generation;
         g_idle_add(render_preview_idle, tj);
+    } else {
+        g_free(decoded);
     }
 
     g_free(job->raw_line);
@@ -159,7 +184,8 @@ static gpointer preview_decode_thread(gpointer data) {
 
 static gboolean render_preview_idle(gpointer user_data) {
     ThumbnailJob *job = user_data;
-    render_preview(job->win, job->data, job->len);
+    if (job->generation == job->win->generation)
+        render_preview(job->win, job->data, job->len);
     g_free(job);
     return G_SOURCE_REMOVE;
 }
@@ -176,8 +202,9 @@ static void show_preview_for(PickerWindow *win, ClipboardEntry *entry) {
         render_preview(win, img->data, img->len);
     } else {
         PreviewDecodeJob *job = g_new0(PreviewDecodeJob, 1);
-        job->win      = win;
-        job->raw_line = g_strdup(raw_line);
+        job->win        = win;
+        job->raw_line   = g_strdup(raw_line);
+        job->generation = win->generation;
         g_thread_new("preview-decode", preview_decode_thread, job);
     }
 }
@@ -317,6 +344,7 @@ static void on_listbox_leave(GtkEventControllerMotion *ctrl,
 
 static gboolean do_paste(gpointer user_data) {
     PickerWindow *win = user_data;
+    win->paste_timeout_id = 0;
     clipboard_paste_wtype();
     dismiss(win);
     return G_SOURCE_REMOVE;
@@ -337,7 +365,8 @@ static void activate_entry(PickerWindow *win, ClipboardEntry *entry) {
     }
 
     if (win->config.auto_paste) {
-        g_timeout_add(win->config.paste_delay_ms, do_paste, win);
+        win->paste_timeout_id = g_timeout_add(
+            win->config.paste_delay_ms, do_paste, win);
     } else {
         dismiss(win);
     }
@@ -399,8 +428,7 @@ static void on_realize(GtkWidget *widget, gpointer user_data) {
 /* ── Dismiss ───────────────────────────────────────────────────── */
 
 static void dismiss(PickerWindow *win) {
-    gtk_window_close(win->window);
-    g_application_quit(G_APPLICATION(win->app));
+    gtk_widget_set_visible(GTK_WIDGET(win->window), FALSE);
 }
 
 /* ── Build UI ──────────────────────────────────────────────────── */
@@ -508,16 +536,31 @@ static void populate(PickerWindow *win) {
     }
 }
 
+/* ── Clear ─────────────────────────────────────────────────────── */
+
+static void clear_listbox(PickerWindow *win) {
+    GtkListBoxRow *row;
+    while ((row = gtk_list_box_get_row_at_index(win->listbox, 0)) != NULL) {
+        gtk_list_box_remove(win->listbox, GTK_WIDGET(row));
+    }
+}
+
+static void free_entries(PickerWindow *win) {
+    if (win->entries) {
+        for (int i = 0; i < win->n_entries; i++)
+            clipboard_entry_free(&win->entries[i]);
+        g_free(win->entries);
+        win->entries   = NULL;
+        win->n_entries = 0;
+    }
+}
+
 /* ── Public ────────────────────────────────────────────────────── */
 
-PickerWindow *picker_window_new(GtkApplication *app,
-                                ClipboardEntry *entries, int n_entries,
-                                const Config *config) {
+PickerWindow *picker_window_new(GtkApplication *app, const Config *config) {
     PickerWindow *win = g_new0(PickerWindow, 1);
-    win->app       = app;
-    win->config    = *config;
-    win->entries   = entries;
-    win->n_entries = n_entries;
+    win->app    = app;
+    win->config = *config;
 
     g_mutex_init(&win->cache_mutex);
     win->image_cache = g_hash_table_new_full(
@@ -545,10 +588,38 @@ PickerWindow *picker_window_new(GtkApplication *app,
 
     build_ui(win);
     setup_input(win);
-    populate(win);
-    load_thumbnails_async(win);
 
     g_signal_connect(win->window, "realize", G_CALLBACK(on_realize), win);
 
     return win;
+}
+
+void picker_window_refresh(PickerWindow *win,
+                           ClipboardEntry *entries, int n_entries) {
+    /* Cancel pending paste timeout */
+    if (win->paste_timeout_id > 0) {
+        g_source_remove(win->paste_timeout_id);
+        win->paste_timeout_id = 0;
+    }
+
+    /* Invalidate in-flight thumbnail/preview threads */
+    win->generation++;
+
+    /* Clear old state */
+    clear_listbox(win);
+    free_entries(win);
+    g_hash_table_remove_all(win->image_cache);
+    win->hovered_row = NULL;
+    gtk_widget_set_visible(GTK_WIDGET(win->preview_picture), FALSE);
+    gtk_picture_set_paintable(win->preview_picture, NULL);
+
+    /* Assign new data */
+    win->entries   = entries;
+    win->n_entries = n_entries;
+
+    /* Rebuild and show */
+    populate(win);
+    load_thumbnails_async(win);
+    gtk_widget_set_visible(GTK_WIDGET(win->window), TRUE);
+    gtk_window_present(win->window);
 }

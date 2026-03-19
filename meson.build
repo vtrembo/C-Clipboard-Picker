@@ -31,11 +31,3 @@ executable('cliphist-picker',
   dependencies: [gtk4_dep, layer_shell_dep],
   install: true,
 )
-
-# Benchmark (no GUI, just data path)
-gio_dep = dependency('gio-2.0')
-executable('cliphist-picker-bench',
-  files('src/bench.c', 'src/clipboard.c', 'src/dedup.c'),
-  dependencies: [gio_dep],
-  install: false,
-)

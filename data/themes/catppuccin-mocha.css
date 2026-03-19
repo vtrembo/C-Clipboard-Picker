@@ -1,0 +1,136 @@
+/*
+ * Catppuccin Mocha theme for cliphist-picker
+ * https://github.com/catppuccin/catppuccin
+ *
+ * Base:     #1e1e2e    Mantle:   #181825    Crust:    #11111b
+ * Surface0: #313244    Surface1: #45475a    Surface2: #585b70
+ * Overlay0: #6c7086    Overlay1: #7f849c
+ * Text:     #cdd6f4    Subtext0: #a6adc8    Subtext1: #bac2de
+ * Lavender: #b4befe    Blue:     #89b4fa
+ */
+
+/* Backdrop — full-screen overlay, blur handled by Hyprland layerrule */
+window.backdrop {
+    background-color: rgba(17, 17, 27, 0.1);
+}
+
+/* Picker frame — main list container */
+.picker-frame {
+    background-color: #1e1e2e;
+    border: 2px solid #313244;
+    border-radius: 12px;
+    padding: 8px 4px;
+}
+
+/* Scrolled window */
+.picker-scroll {
+    background-color: transparent;
+}
+
+/* List */
+.picker-list {
+    background-color: transparent;
+}
+
+.picker-list row {
+    padding: 4px 8px;
+    margin: 1px 4px;
+    border-radius: 8px;
+    background-color: transparent;
+    outline: none;
+    transition: background-color 150ms ease-in-out;
+}
+
+.picker-list row:selected {
+    background-color: #313244;
+}
+
+.picker-list row:hover:not(:selected) {
+    background-color: rgba(49, 50, 68, 0.5);
+}
+
+.picker-list row:focus {
+    outline: none;
+}
+
+/* Text rows */
+.text-row {
+    min-height: 28px;
+}
+
+.text-content {
+    color: #cdd6f4;
+    font-size: 13px;
+    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+}
+
+.row-icon {
+    color: #6c7086;
+    min-width: 16px;
+    min-height: 16px;
+}
+
+/* Image / merged rows */
+.image-row {
+    min-height: 56px;
+}
+
+.merged-text {
+    color: #cdd6f4;
+    font-size: 13px;
+    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+}
+
+.image-meta {
+    color: #a6adc8;
+    font-size: 11px;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+
+/* Thumbnail */
+.thumbnail {
+    border-radius: 6px;
+    min-width: 48px;
+    min-height: 48px;
+    background-color: #181825;
+}
+
+/* Preview image — raw, no box */
+.preview-image {
+    border-radius: 8px;
+}
+
+/* Scrollbar */
+.picker-scroll scrollbar {
+    background-color: transparent;
+    padding: 2px;
+}
+
+.picker-scroll scrollbar slider {
+    background-color: #45475a;
+    border-radius: 99px;
+    min-width: 6px;
+    min-height: 30px;
+}
+
+.picker-scroll scrollbar slider:hover {
+    background-color: #585b70;
+}
+
+.picker-scroll scrollbar slider:active {
+    background-color: #6c7086;
+}
+
+/* Selection accent */
+.picker-list row:selected .text-content,
+.picker-list row:selected .merged-text {
+    color: #b4befe;
+}
+
+.picker-list row:selected .image-meta {
+    color: #bac2de;
+}
+
+.picker-list row:selected .row-icon {
+    color: #89b4fa;
+}

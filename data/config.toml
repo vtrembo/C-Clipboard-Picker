@@ -1,0 +1,19 @@
+[general]
+max_entries = 50
+dedup_id_threshold = 3
+
+[appearance]
+theme = "catppuccin-mocha"
+width = 600
+max_height = 500
+row_height_text = 36
+row_height_image = 64
+thumbnail_size = 48
+preview_width = 500
+preview_max_height = 600
+dim_backdrop = true
+
+[behavior]
+auto_paste = true
+paste_delay_ms = 80
+close_on_select = true

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/github/cliphist-picker">
+    <file compressed="true">themes/catppuccin-mocha.css</file>
+  </gresource>
+</gresources>

@@ -200,3 +200,65 @@ void clipboard_paste_wtype(void) {
     if (proc) g_object_unref(proc);
     g_clear_error(&err);
 }
+
+bool clipboard_current_has_text_and_image(void) {
+    GError *err = NULL;
+    GSubprocess *proc = g_subprocess_new(
+        G_SUBPROCESS_FLAGS_STDOUT_PIPE,
+        &err, "wl-paste", "--list-types", NULL);
+    if (!proc) {
+        g_clear_error(&err);
+        return false;
+    }
+
+    GBytes *out_bytes = NULL;
+    g_subprocess_communicate(proc, NULL, NULL, &out_bytes, NULL, &err);
+    g_object_unref(proc);
+    if (!out_bytes) {
+        g_clear_error(&err);
+        return false;
+    }
+
+    gsize len;
+    const char *data = g_bytes_get_data(out_bytes, &len);
+
+    bool has_text = false;
+    bool has_image = false;
+
+    const char *p = data;
+    const char *end = data + len;
+    while (p < end) {
+        const char *nl = memchr(p, '\n', end - p);
+        if (!nl) nl = end;
+        gsize line_len = nl - p;
+
+        if (!has_text && line_len >= 4 && memcmp(p, "text", 4) == 0)
+            has_text = true;
+        if (!has_image && line_len >= 5 && memcmp(p, "image", 5) == 0)
+            has_image = true;
+
+        if (has_text && has_image)
+            break;
+
+        p = nl + 1;
+    }
+
+    g_bytes_unref(out_bytes);
+    return has_text && has_image;
+}
+
+void clipboard_delete(const char *raw_line) {
+    GError *err = NULL;
+    GSubprocess *proc = g_subprocess_new(
+        G_SUBPROCESS_FLAGS_STDIN_PIPE,
+        &err, "cliphist", "delete", NULL);
+    if (!proc) {
+        g_clear_error(&err);
+        return;
+    }
+
+    GBytes *input = g_bytes_new(raw_line, strlen(raw_line));
+    g_subprocess_communicate(proc, input, NULL, NULL, NULL, NULL);
+    g_bytes_unref(input);
+    g_object_unref(proc);
+}

@@ -59,8 +59,7 @@ css = catppuccin-mocha.css
 | `.text-row` | Text entry row container |
 | `.text-content` | Text entry label |
 | `.row-icon` | Paste icon in text rows |
-| `.image-row` | Image/merged entry row container |
-| `.merged-text` | Text label in merged entries |
+| `.image-row` | Image entry row container |
 | `.image-meta` | Format/dimensions/size label |
 | `.thumbnail` | Image thumbnail |
 | `.preview-image` | Large image preview panel |

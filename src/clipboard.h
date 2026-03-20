@@ -9,5 +9,7 @@ guint8   *clipboard_decode(const char *raw_line, gsize *out_len);
 void      clipboard_copy_text(const char *raw_line);
 void      clipboard_copy_image(const char *raw_line, const char *mime);
 void      clipboard_paste_wtype(void);
+bool      clipboard_current_has_text_and_image(void);
+void      clipboard_delete(const char *raw_line);
 
 #endif

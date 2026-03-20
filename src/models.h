@@ -8,7 +8,6 @@
 typedef enum {
     ENTRY_TYPE_TEXT,
     ENTRY_TYPE_IMAGE,
-    ENTRY_TYPE_MERGED,
 } EntryType;
 
 typedef struct {
@@ -34,21 +33,7 @@ typedef struct {
 } ClipboardEntry;
 
 static inline bool clipboard_entry_has_image(const ClipboardEntry *e) {
-    return e->entry_type == ENTRY_TYPE_IMAGE ||
-           e->entry_type == ENTRY_TYPE_MERGED;
-}
-
-static inline char *clipboard_entry_display_text(const ClipboardEntry *e) {
-    if (e->text_preview)
-        return g_strdup(e->text_preview);
-    if (e->image_format && e->image_dims && e->image_size) {
-        char *upper_fmt = g_ascii_strup(e->image_format, -1);
-        char *result = g_strdup_printf("[%s %s - %s]",
-            upper_fmt, e->image_dims, e->image_size);
-        g_free(upper_fmt);
-        return result;
-    }
-    return g_strdup("[Image]");
+    return e->entry_type == ENTRY_TYPE_IMAGE;
 }
 
 static inline void raw_entry_free(RawEntry *e) {

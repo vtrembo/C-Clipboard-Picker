@@ -128,7 +128,8 @@ static void load_thumbnails_async(PickerWindow *win) {
     ThumbnailJob *init = g_new0(ThumbnailJob, 1);
     init->win        = win;
     init->generation = win->generation;
-    g_thread_new("thumbnail-loader", thumbnail_thread_func, init);
+    GThread *thread = g_thread_new("thumbnail-loader", thumbnail_thread_func, init);
+    g_thread_unref(thread);
 }
 
 /* ── Preview ───────────────────────────────────────────────────── */
@@ -205,7 +206,8 @@ static void show_preview_for(PickerWindow *win, ClipboardEntry *entry) {
         job->win        = win;
         job->raw_line   = g_strdup(raw_line);
         job->generation = win->generation;
-        g_thread_new("preview-decode", preview_decode_thread, job);
+        GThread *thread = g_thread_new("preview-decode", preview_decode_thread, job);
+        g_thread_unref(thread);
     }
 }
 

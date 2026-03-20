@@ -70,15 +70,9 @@ window.backdrop {
     min-height: 16px;
 }
 
-/* Image / merged rows */
+/* Image rows */
 .image-row {
     min-height: 56px;
-}
-
-.merged-text {
-    color: #cdd6f4;
-    font-size: 13px;
-    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
 }
 
 .image-meta {
@@ -122,8 +116,7 @@ window.backdrop {
 }
 
 /* Selection accent */
-.picker-list row:selected .text-content,
-.picker-list row:selected .merged-text {
+.picker-list row:selected .text-content {
     color: #b4befe;
 }
 

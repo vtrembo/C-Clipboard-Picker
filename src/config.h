@@ -6,7 +6,6 @@
 typedef struct {
     /* general */
     int  max_entries;
-    int  dedup_id_threshold;
     /* appearance */
     int  width;
     int  max_height;
@@ -25,7 +24,6 @@ typedef struct {
 static inline Config config_defaults(void) {
     return (Config){
         .max_entries         = 50,
-        .dedup_id_threshold  = 3,
         .width               = 600,
         .max_height          = 500,
         .row_height_text     = 36,

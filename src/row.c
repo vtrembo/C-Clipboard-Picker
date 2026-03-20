@@ -62,15 +62,6 @@ static GtkListBoxRow *create_image_row(const ClipboardEntry *entry,
     gtk_widget_set_valign(GTK_WIDGET(vbox), GTK_ALIGN_CENTER);
     gtk_widget_set_hexpand(GTK_WIDGET(vbox), TRUE);
 
-    if (entry->entry_type == ENTRY_TYPE_MERGED && entry->text_preview) {
-        GtkLabel *text_label = GTK_LABEL(gtk_label_new(entry->text_preview));
-        gtk_label_set_xalign(text_label, 0.0f);
-        gtk_label_set_ellipsize(text_label, PANGO_ELLIPSIZE_END);
-        gtk_label_set_single_line_mode(text_label, TRUE);
-        gtk_widget_add_css_class(GTK_WIDGET(text_label), "merged-text");
-        gtk_box_append(vbox, GTK_WIDGET(text_label));
-    }
-
     const char *fmt = entry->image_format ? entry->image_format : "?";
     const char *dims = entry->image_dims ? entry->image_dims : "?";
     const char *size = entry->image_size ? entry->image_size : "?";

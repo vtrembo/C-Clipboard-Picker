@@ -168,11 +168,12 @@ static void on_activate(GtkApplication *app, gpointer user_data) {
     }
 
     /* Deduplicate */
+    bool multi_type = clipboard_current_has_text_and_image();
     int entry_count = 0;
     ClipboardEntry *entries = deduplicate(
         raw, raw_count,
-        g_config.dedup_id_threshold,
         g_config.max_entries,
+        multi_type,
         &entry_count);
 
     /* Free raw entries */

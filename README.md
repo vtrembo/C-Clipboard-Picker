@@ -7,7 +7,7 @@ A fast GTK4 clipboard history picker for Wayland compositors. Runs as a resident
 - Resident daemon — starts at login, stays in memory, activates instantly on keybind
 - Full-screen transparent overlay with exclusive keyboard grab (Layer Shell)
 - Text and image clipboard entries with thumbnail previews
-- Adjacent text+image deduplication (merged rows)
+- Automatic text+image deduplication (removes duplicate text from web copies)
 - Modular theme system with hot-swappable CSS
 - Auto-paste after selection via `wtype`
 

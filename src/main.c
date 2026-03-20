@@ -155,9 +155,11 @@ static void on_startup(GtkApplication *app, gpointer user_data) {
 static void on_activate(GtkApplication *app, gpointer user_data) {
     (void)user_data;
 
-    /* Create window shell once */
-    if (!g_picker)
+    /* Create window shell once; don't show on startup */
+    if (!g_picker) {
         g_picker = picker_window_new(app, &g_config);
+        return;
+    }
 
     /* Fetch fresh clipboard entries */
     int raw_count = 0;
